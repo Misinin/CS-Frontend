@@ -3,7 +3,7 @@ interface ErrorLoggerParams {
   offset?: number;
 }
 
-export class bitController {
+export class BitController {
   array: Uint8Array;
 
   constructor(array: Uint8Array) {
@@ -18,7 +18,7 @@ export class bitController {
   }
 
   private getArrayValueByIndex(array: Uint8Array, itemIndex: number) {
-    if (array[itemIndex]) return array[itemIndex];
+    return array[itemIndex];
   }
 
   private getOneOrZero(value: number) {
@@ -29,7 +29,7 @@ export class bitController {
     return 0;
   }
 
-  private bitwiseAndWithLeftOffset(value: number, offset: number) {
+  private bitwiseAndWithRightOffset(value: number, offset: number) {
     return value & (1 << offset);
   }
 
@@ -49,7 +49,7 @@ export class bitController {
       return;
     }
 
-    const res = this.bitwiseAndWithLeftOffset(value, bitIndex);
+    const res = this.bitwiseAndWithRightOffset(value, bitIndex);
 
     return this.getOneOrZero(res);
   }
@@ -59,7 +59,7 @@ export class bitController {
 
     if (value === undefined) {
       this.errorLogger({ value });
-      return;
+      // return;
     }
 
     const newValue = this.swapBitByIndex(value, bitIndex, swapTo);
@@ -67,12 +67,12 @@ export class bitController {
   }
 }
 
-// const bitGetter = new bitController(new Uint8Array([0b1110, 0b1101]));
+// const bitGetter = new BitController(new Uint8Array([0b1110, 0b1101]));
 
 // console.log(bitGetter.get(0, 1)); // 1
 // console.log(bitGetter.get(1, 1)); // 0
 
-// const bitAccessor = new bitController(new Uint8Array([0b1110, 0b1101]));
+// const bitAccessor = new BitController(new Uint8Array([0b1110, 0b1101]));
 
 // console.log(bitAccessor.set(0, 1, 0)); //
 // console.log(bitAccessor.get(0, 1)); // 0
