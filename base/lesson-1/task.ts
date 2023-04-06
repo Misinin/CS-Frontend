@@ -3,7 +3,7 @@ interface ErrorLoggerParams {
   offset?: number;
 }
 
-class bitController {
+export class bitController {
   array: Uint8Array;
 
   constructor(array: Uint8Array) {
@@ -66,12 +66,13 @@ class bitController {
     this.array[itemIndex] = newValue;
   }
 }
-const bitGetter = new bitController(new Uint8Array([0b1110, 0b1101]));
 
-console.log(bitGetter.get(0, 1)); // 1
-console.log(bitGetter.get(1, 1)); // 0
+// const bitGetter = new bitController(new Uint8Array([0b1110, 0b1101]));
 
-const bitAccessor = new bitController(new Uint8Array([0b1110, 0b1101]));
+// console.log(bitGetter.get(0, 1)); // 1
+// console.log(bitGetter.get(1, 1)); // 0
 
-console.log(bitAccessor.set(0, 1, 0)); //
-console.log(bitAccessor.get(0, 1)); // 0
+// const bitAccessor = new bitController(new Uint8Array([0b1110, 0b1101]));
+
+// console.log(bitAccessor.set(0, 1, 0)); //
+// console.log(bitAccessor.get(0, 1)); // 0
