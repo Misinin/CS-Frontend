@@ -1,3 +1,11 @@
+import {
+  BIT_IS_UNDEFINED,
+  INCORRECT_BIT_INDEX,
+  MAX_BIT_INDEX,
+  MIN_BIT_INDEX,
+  VALUE_IS_UNDEFINED,
+} from "./lib/constants";
+
 interface ErrorLoggerParams {
   value?: number;
   offset?: number;
@@ -11,10 +19,10 @@ export class BitController {
   }
 
   private errorLogger({ value, offset }: ErrorLoggerParams) {
-    if (value === undefined)
-      throw new Error("Selected array item is undefined");
-    if (offset === undefined)
-      throw new Error("Target bit index must be defined");
+    if (value === undefined) throw new Error(VALUE_IS_UNDEFINED);
+    if (offset === undefined) throw new Error(BIT_IS_UNDEFINED);
+    if (offset < MIN_BIT_INDEX || offset > MAX_BIT_INDEX)
+      throw new Error(INCORRECT_BIT_INDEX);
   }
 
   private getArrayValueByIndex(array: Uint8Array, itemIndex: number) {
@@ -44,10 +52,7 @@ export class BitController {
   get(itemIndex: number, bitIndex: number) {
     const value = this.getArrayValueByIndex(this.array, itemIndex);
 
-    if (value === undefined) {
-      this.errorLogger({ value });
-      return;
-    }
+    this.errorLogger({ value, offset: bitIndex });
 
     const res = this.bitwiseAndWithRightOffset(value, bitIndex);
 
@@ -57,10 +62,7 @@ export class BitController {
   set(itemIndex: number, bitIndex: number, swapTo: 0 | 1) {
     const value = this.getArrayValueByIndex(this.array, itemIndex);
 
-    if (value === undefined) {
-      this.errorLogger({ value });
-      // return;
-    }
+    this.errorLogger({ value, offset: bitIndex });
 
     const newValue = this.swapBitByIndex(value, bitIndex, swapTo);
     this.array[itemIndex] = newValue;
