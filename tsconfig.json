@@ -12,5 +12,6 @@
     "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
-  "references": [{ "path": "base/lesson-2/tsconfig.json" }]
+  "references": [{ "path": "base/lesson-2/tsconfig.json" }],
+  "exclude": ["jest.config.ts"]
 }
