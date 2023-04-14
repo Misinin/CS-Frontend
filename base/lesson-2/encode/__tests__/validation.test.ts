@@ -1,9 +1,9 @@
-import {
+const {
   validation,
   getInvalidMessageForNumber,
   getInvalidMessageForASCII,
   getInvalidMessageForString,
-} from "../index";
+} = require("../index");
 
 describe("Валидация кодируемых значений", () => {
   it("Все значения валидные", () => {
@@ -38,7 +38,7 @@ describe("Валидация кодируемых значений", () => {
       validation(testData);
     } catch (error) {
       // @ts-ignore
-      expect(error.message).toEqual(getInvalidMessageForASCII(testData));
+      expect(error.message).toEqual(getInvalidMessageForNumber(testData));
     }
   });
 
@@ -49,7 +49,7 @@ describe("Валидация кодируемых значений", () => {
       validation(testData);
     } catch (error) {
       // @ts-ignore
-      expect(error.message).toEqual(getInvalidMessageForString(testData));
+      expect(error.message).toEqual(getInvalidMessageForASCII(testData));
     }
   });
 });
