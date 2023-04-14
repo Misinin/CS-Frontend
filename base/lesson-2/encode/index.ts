@@ -117,7 +117,7 @@ export function createUint8ArrayFilledBits(
 function encode(array: Array<unknown>, schema: [number, AvailableType][]) {
   const { bits, bitCounter } = arrayToBinaryString(array, schema);
 
-  const numberBytes = Math.round(bitCounter / 8);
+  const numberBytes = Math.ceil(bitCounter / 8);
   const uint8 = createUint8ArrayFilledBits(bits, numberBytes);
 
   return uint8.buffer;
