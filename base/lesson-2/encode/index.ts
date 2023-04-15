@@ -114,7 +114,10 @@ export function createUint8ArrayFilledBits(
   return uint8;
 }
 
-function encode(array: Array<unknown>, schema: [number, AvailableType][]) {
+export function encode(
+  array: Array<unknown>,
+  schema: [number, AvailableType][]
+) {
   const { bits, bitCounter } = arrayToBinaryString(array, schema);
 
   const numberBytes = Math.ceil(bitCounter / 8);
@@ -123,4 +126,59 @@ function encode(array: Array<unknown>, schema: [number, AvailableType][]) {
   return uint8.buffer;
 }
 
-encode([2, 3, true, false, "ab"], schema);
+export function decode(
+  buffer: ArrayBufferLike,
+  schema: [number, AvailableType][]
+) {
+  const bufferView = new Uint8Array(buffer);
+
+  const stringBits: string[] = [];
+
+  const res: unknown[] = [];
+
+  bufferView.forEach((item) => {
+    const binString = pad(item.toString(2), 8);
+
+    stringBits.push(binString);
+  });
+
+  const bits = stringBits.join("").split("");
+
+  let decodedBits = 0;
+  let schemaItemIndex = 0;
+
+  do {
+    const [bitLength, type] = schema[schemaItemIndex];
+
+    const codedItem = bits.slice(decodedBits, bitLength + decodedBits);
+
+    if (type === "number") {
+      const number = parseInt(codedItem.join(""), 2);
+      res.push(number);
+    }
+
+    if (type === "boolean") {
+      res.push(Boolean(Number(codedItem)));
+    }
+
+    if (type === "ascii") {
+      const firstASCIISymbol = codedItem.slice(0, 8).join("");
+      const secondASCIISymbol = codedItem.slice(-8).join("");
+
+      const symbols =
+        String.fromCharCode(parseInt(firstASCIISymbol, 2)) +
+        String.fromCharCode(parseInt(secondASCIISymbol, 2));
+
+      res.push(symbols);
+    }
+
+    schemaItemIndex += 1;
+    decodedBits += bitLength;
+  } while (decodedBits !== bits.length);
+
+  return res;
+}
+
+// const coded = encode([2, 3, true, false, "ab"], schema);
+
+// const decoded = decode(coded, schema);
