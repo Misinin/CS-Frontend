@@ -1,84 +1,101 @@
-class Node {
-  value: number | null;
-  next: Node | null;
-  prev: Node | null;
+class ListItem {
+  next: ListItem | null;
+  prev: ListItem | null;
+  value: unknown;
 
-  constructor(value: number) {
-    this.value = value;
+  constructor(value: unknown) {
     this.next = null;
     this.prev = null;
+    this.value = value;
   }
 }
 
 export class LinkedList {
-  first: Node | null;
-  last: Node | null;
+  head: ListItem | null;
+  tail: ListItem | null;
 
   constructor() {
-    this.first = null;
-    this.last = null;
+    this.head = null;
+    this.tail = null;
   }
 
-  append(value: number) {
-    if (this.first === null) {
-      const node = new Node(value);
+  #setHead(newItem: ListItem | null) {
+    this.head = newItem;
+    this.tail = newItem;
+  }
 
-      this.first = node;
-      this.last = node;
+  append(value: unknown) {
+    const newItem = new ListItem(value);
+
+    if (this.head === null) {
+      this.#setHead(newItem);
       return;
     }
 
-    const node = new Node(value);
-    node.prev = this.last;
-    this.last!.next = node;
-    this.last = node;
+    newItem.prev = this.tail;
+    this.tail!.next = newItem;
+    this.tail = newItem;
   }
 
-  prepend(value: number) {
-    if (this.first === null) {
-      this.append(value);
+  prepend(value: unknown) {
+    const newItem = new ListItem(value);
+
+    if (this.head === null) {
+      this.#setHead(newItem);
       return;
     }
 
-    const node = new Node(value);
-
-    node.next = this.first;
-    this.first.prev = node;
-    this.first = node;
+    newItem.next = this.head;
+    this.head.prev = newItem;
+    this.head = newItem;
   }
 
   deleteFirst() {
-    const node = this.first?.next;
-    node!.prev = null;
-    this.first = node as Node;
+    if (this.head?.next === null) {
+      this.#setHead(null);
+      return;
+    }
+
+    const newFirst = this.head!.next;
+    newFirst.prev = null;
+    this.head = newFirst;
   }
 
   deleteLast() {
-    const node = this.last?.prev;
-    node!.next = null;
-    this.last = node as Node;
+    if (!this.tail?.prev) return;
+
+    const newLast = this.tail.prev;
+    newLast.next = null;
+    this.tail = newLast;
   }
 
   toArray() {
-    let current = this.first;
+    let cursor: ListItem | null | undefined = this.head;
     const res = [];
+
     do {
-      res.push(current?.value);
-      current = current!.next;
-    } while (current !== null);
+      const currentCursor: ListItem | null | undefined = cursor;
+      cursor = currentCursor?.next;
+
+      if (currentCursor?.value) {
+        res.push(currentCursor?.value);
+      }
+    } while (cursor);
+
     return res;
   }
 
   [Symbol.iterator]() {
-    let cursor = this.first;
+    let cursor: ListItem | null | undefined = this.head;
 
     return {
-      next() {
+      next: () => {
         const currentCursor = cursor;
-        cursor = currentCursor!.next;
+
+        cursor = currentCursor?.next;
 
         return {
-          done: currentCursor?.next === null,
+          done: cursor === undefined,
           value: currentCursor?.value,
         };
       },
@@ -86,22 +103,18 @@ export class LinkedList {
   }
 }
 
-const list = new LinkedList();
+// const list = new LinkedList();
 
-list.append(1);
-list.append(2);
-list.append(3);
-list.append(4);
-list.prepend(42);
+// list.append(1);
+// list.append(2);
+// list.append(3);
+// list.prepend(42);
 
-// console.log(list?.first?.value); // 1
-// console.log(list?.first?.value); // 1
-// console.log(list?.last?.value); // 3
-// console.log(list?.first?.next?.value); // 2
-// console.log(list?.first?.next?.prev?.value); // 1
+// list.deleteFirst();
+// list.deleteLast();
 
-for (let item of list) {
-  console.log(item);
-}
+// for (let el of list) {
+//   console.log(el);
+// }
 
 // console.log(list.toArray());
