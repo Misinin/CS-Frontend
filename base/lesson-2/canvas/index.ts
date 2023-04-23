@@ -1,5 +1,12 @@
 type Filter = "inverted" | "grayscale";
 
+interface Pixel {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
 interface CreateCanvas {
   width: string;
   height: string;
@@ -30,76 +37,118 @@ function getProcessedImageDataBytes(
       colorSpace: "srgb",
     });
 
-    const newImagePixels = applyFilter(imageData, canvas, filter);
+    const matrixPixels = new PixelMatrix(
+      canvas.width,
+      canvas.height,
+      4,
+      imageData.data
+    );
 
-    if (newImagePixels) {
-      const newImageData = ctx.createImageData(canvas.width, canvas.height);
-      newImageData.data.set(newImagePixels);
+    for (let y = 0; y <= canvas.height; y++) {
+      let x = 0;
 
-      return newImageData;
+      do {
+        const pixel = matrixPixels.getPixel(x, y);
+        const [r, g, b, a] = pixel;
+
+        const newPixel = applyFilter({ r, g, b, a }, filter);
+
+        matrixPixels.setPixel(x, y, newPixel);
+        x++;
+      } while (x <= canvas.width);
     }
+
+    const newImageData = ctx.createImageData(canvas.width, canvas.height);
+    newImageData.data.set(matrixPixels.getData());
+
+    return newImageData;
   }
 }
 
-function applyFilter(
-  imageData: ImageData,
-  canvas: HTMLCanvasElement,
-  filter: Filter
-) {
-  switch (filter) {
-    case "inverted":
-      return invertRGB(imageData, canvas);
+class PixelMatrix {
+  #width: number;
+  #height: number;
+  #bytePerPixel: number;
+  #matrix: Uint8ClampedArray;
 
-    case "grayscale":
-      return grayscaleRGB(imageData, canvas);
+  constructor(
+    width: number,
+    height: number,
+    bytePerPixel: number,
+    data: Uint8ClampedArray
+  ) {
+    this.#width = width;
+    this.#height = height;
+    this.#bytePerPixel = bytePerPixel;
+    this.#matrix = data;
+  }
 
-    default:
-      return null;
+  #getIndex(x: number, y: number) {
+    return (y * this.#width + x) * this.#bytePerPixel;
+  }
+
+  getPixel(x: number, y: number) {
+    const index = this.#getIndex(x, y);
+
+    return [
+      this.#matrix[index + 0],
+      this.#matrix[index + 1],
+      this.#matrix[index + 2],
+      this.#matrix[index + 3],
+    ];
+  }
+
+  setPixel(x: number, y: number, pixel: Pixel) {
+    const index = this.#getIndex(x, y);
+
+    this.#matrix[index + 0] = pixel.r;
+    this.#matrix[index + 1] = pixel.g;
+    this.#matrix[index + 2] = pixel.b;
+    this.#matrix[index + 3] = pixel.a;
+  }
+
+  getData() {
+    return this.#matrix;
   }
 }
 
-export function invertRGB(imageData: ImageData, canvas: HTMLCanvasElement) {
-  const buffer = imageData?.data.buffer;
-  const unit8 = new Uint8Array(buffer);
-  const nweBuffer = new ArrayBuffer(buffer.byteLength);
-  const newImagesPixels = new Uint8Array(nweBuffer);
-  const iterationStep = unit8.length / canvas.width / canvas.height;
-
-  for (let pixel = 0; pixel < unit8.length; pixel += iterationStep) {
-    const r = unit8[pixel + 0];
-    const g = unit8[pixel + 1];
-    const b = unit8[pixel + 2];
-
-    newImagesPixels[pixel + 0] = r ^ 255;
-    newImagesPixels[pixel + 1] = g ^ 255;
-    newImagesPixels[pixel + 2] = b ^ 255;
-    newImagesPixels[pixel + 3] = 255;
+function applyFilter(pixel: Pixel, filter: Filter) {
+  if (filter === "inverted") {
+    return invert(pixel);
   }
 
-  return newImagesPixels;
+  if (filter === "grayscale") {
+    return grayscale(pixel);
+  }
+  return pixel;
 }
 
-export function grayscaleRGB(imageData: ImageData, canvas: HTMLCanvasElement) {
-  const buffer = imageData?.data.buffer;
-  const unit8 = new Uint8Array(buffer);
-  const nweBuffer = new ArrayBuffer(buffer.byteLength);
-  const newImagesPixels = new Uint8Array(nweBuffer);
-  const iterationStep = unit8.length / canvas.width / canvas.height;
+function invert(pixel: Pixel) {
+  const { r, g, b, a } = pixel;
 
-  for (let pixel = 0; pixel < unit8.length; pixel += iterationStep) {
-    const r = unit8[pixel + 0];
-    const g = unit8[pixel + 1];
-    const b = unit8[pixel + 2];
+  const newPixel: Pixel = {
+    r: r ^ 255,
+    g: g ^ 255,
+    b: b ^ 255,
+    a,
+  };
 
-    const avg = (r + g + b) / 3;
+  return newPixel;
+}
 
-    newImagesPixels[pixel + 0] = avg;
-    newImagesPixels[pixel + 1] = avg;
-    newImagesPixels[pixel + 2] = avg;
-    newImagesPixels[pixel + 3] = 255;
-  }
+function grayscale(pixel: Pixel) {
+  const { r, g, b, a } = pixel;
 
-  return newImagesPixels;
+  const avg = (r + g + b) / 3;
+
+  const newPixel: Pixel = {
+    r: avg,
+    g: avg,
+    b: avg,
+    a,
+  };
+
+  return newPixel;
 }
 
 function drawImageWithFilter(
