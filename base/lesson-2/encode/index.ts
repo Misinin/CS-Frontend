@@ -1,4 +1,10 @@
 export type AvailableType = "number" | "boolean" | "ascii";
+type Schema = [number, AvailableType][];
+type NormalizedSchema = {
+  size: number;
+  type: AvailableType;
+  partIndex?: number;
+}[];
 const BITS_PER_BYTE = 8;
 const AVAILABLE_TYPES = "number, boolean, ascii";
 const MIN_NUMBER = 0;
@@ -41,7 +47,7 @@ export function validation(value: unknown) {
   throw new Error(getInvalidMessageGeneral(value));
 }
 
-const schema: [number, AvailableType][] = [
+const schema: Schema = [
   [3, "number"],
   [3, "number"],
   [1, "boolean"],
@@ -49,136 +55,85 @@ const schema: [number, AvailableType][] = [
   [16, "ascii"],
 ];
 
-export function pad(value: string, bitLength: number) {
-  if (value.length < bitLength) {
-    const missingAmount = bitLength - value.length;
-
-    const newString = new Array(missingAmount).fill("0").join("") + value;
-    return newString.slice(-bitLength);
-  }
-  return value;
-}
-
-export function arrayToBinaryString(
-  array: Array<unknown>,
-  schema: [number, AvailableType][]
-) {
-  let bitCounter = 0;
-  const bits: string[] = [];
-
-  for (let i = 0; i < array.length; i += 1) {
-    const encodeItem = array[i];
-
-    validation(encodeItem);
-
-    const [bitLength, type] = schema[i];
-
-    if (type === "number" && typeof encodeItem === "number") {
-      const binary = pad(encodeItem.toString(2), bitLength);
-      binary.split("").forEach((bit) => bits.push(bit));
-    }
-
-    if (type === "boolean" && typeof encodeItem === "boolean") {
-      bits.push(encodeItem ? "1" : "0");
-    }
-
-    if (type === "ascii" && typeof encodeItem === "string") {
-      encodeItem.split("").forEach((item) => {
-        const binaryCharCode = pad(
-          item.charCodeAt(0).toString(2),
-          bitLength / 2
-        );
-
-        binaryCharCode.split("").forEach((bit) => bits.push(bit));
-      });
-    }
-
-    bitCounter += bitLength;
-  }
-
-  return { bitCounter, bits };
-}
-
-export function createUint8ArrayFilledBits(
-  bits: string[],
-  numberBytes: number
-) {
-  const uint8 = new Uint8Array(numberBytes);
-
-  for (let i = BITS_PER_BYTE - 1; i <= bits.length; i += BITS_PER_BYTE) {
-    const byteIndex = (i / BITS_PER_BYTE) ^ 0;
-    const bitsPart = bits.slice(i - (BITS_PER_BYTE - 1), i + 1);
-    uint8[byteIndex] = parseInt(bitsPart.join(""), 2);
-  }
-
-  return uint8;
-}
-
-export function encode(
-  array: Array<unknown>,
-  schema: [number, AvailableType][]
-) {
-  const { bits, bitCounter } = arrayToBinaryString(array, schema);
-
-  const numberBytes = Math.ceil(bitCounter / 8);
-  const uint8 = createUint8ArrayFilledBits(bits, numberBytes);
-
-  return uint8.buffer;
-}
-
-export function decode(
-  buffer: ArrayBufferLike,
-  schema: [number, AvailableType][]
-) {
-  const bufferView = new Uint8Array(buffer);
-
-  const stringBits: string[] = [];
-
-  const res: unknown[] = [];
-
-  bufferView.forEach((item) => {
-    const binString = pad(item.toString(2), 8);
-
-    stringBits.push(binString);
-  });
-
-  const bits = stringBits.join("").split("");
-
-  let decodedBits = 0;
-  let schemaItemIndex = 0;
-
-  do {
-    const [bitLength, type] = schema[schemaItemIndex];
-
-    const codedItem = bits.slice(decodedBits, bitLength + decodedBits);
-
-    if (type === "number") {
-      const number = parseInt(codedItem.join(""), 2);
-      res.push(number);
-    }
-
-    if (type === "boolean") {
-      res.push(Boolean(Number(codedItem)));
-    }
-
+function getNormalizedSchema(schema: Schema): NormalizedSchema {
+  return schema.flatMap(([size, type]) => {
     if (type === "ascii") {
-      const firstASCIISymbol = codedItem.slice(0, 8).join("");
-      const secondASCIISymbol = codedItem.slice(-8).join("");
-
-      const symbols =
-        String.fromCharCode(parseInt(firstASCIISymbol, 2)) +
-        String.fromCharCode(parseInt(secondASCIISymbol, 2));
-
-      res.push(symbols);
+      return new Array(2)
+        .fill({ size: 8, type })
+        .map((item, index) => ({ ...item, partIndex: index }));
     }
+    return { size, type };
+  });
+}
 
-    schemaItemIndex += 1;
-    decodedBits += bitLength;
-  } while (decodedBits !== bits.length);
+function getMaxViewSize(normalizedSchema: NormalizedSchema) {
+  return Math.max(
+    ...normalizedSchema.map(({ size }) => (size <= 8 ? 8 : size < 16 ? 16 : 32))
+  );
+}
+
+function getOffsets(normalizedSchema: NormalizedSchema, bitsPerItem: number) {
+  let encodedBits = 0;
+
+  const res = [];
+
+  for (let item = 0; item < normalizedSchema.length; item++) {
+    const { size } = normalizedSchema[item];
+    encodedBits += size;
+
+    const bufferOffset = ~~((encodedBits - 1) / bitsPerItem);
+
+    const offsetInfo = {
+      byteOffset: bufferOffset,
+      bitsCount: size,
+      innerByteOffset: encodedBits - 1,
+    };
+
+    res.push(offsetInfo);
+  }
 
   return res;
 }
 
-// const coded = encode([2, 3, true, false, "ab"], schema);
+function encode(data: unknown[], schema: Schema) {
+  const normalizedSchema = getNormalizedSchema(schema);
+  const bitsPerItem = getMaxViewSize(normalizedSchema);
+  const offsets = getOffsets(normalizedSchema, bitsPerItem);
+  const allBitsCount = offsets.at(-1)?.innerByteOffset || 0;
+  const bufferSize = Math.ceil(allBitsCount / bitsPerItem);
 
-// const decoded = decode(coded, schema);
+  let buffer: Uint8Array | Uint16Array | Uint32Array;
+  buffer =
+    bitsPerItem === 8
+      ? new Uint8Array(bufferSize)
+      : bitsPerItem === 16
+      ? new Uint16Array(bufferSize)
+      : new Uint32Array(bufferSize);
+
+  for (let i = 0; i < offsets.length; i++) {
+    const { byteOffset, innerByteOffset } = offsets[i];
+    const { type, partIndex } = normalizedSchema[i];
+    const encodeItem = data[i];
+
+    if (type === "number" && typeof encodeItem === "number") {
+      buffer[byteOffset] |= encodeItem << (bitsPerItem - 1 - innerByteOffset);
+    }
+
+    if (type === "boolean") {
+      buffer[byteOffset] |=
+        (encodeItem ? 1 : 0) << (bitsPerItem - 1 - innerByteOffset);
+    }
+
+    if (partIndex !== undefined && type === "ascii") {
+      const item = data[i - partIndex];
+
+      if (typeof item === "string") {
+        buffer[byteOffset] = item[partIndex].charCodeAt(0);
+      }
+    }
+  }
+
+  return buffer.buffer;
+}
+
+console.log(encode([2, 3, true, false, "ab"], schema));
