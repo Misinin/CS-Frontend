@@ -1,4 +1,4 @@
-class Stack {
+export class Stack {
   #cursor: number;
   head: number | null;
   #capacity: number;
