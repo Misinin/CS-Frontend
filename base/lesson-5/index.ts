@@ -54,7 +54,7 @@ function stack(obj: Record<string, unknown>) {
 
 function isValid(value: string) {
   const stack: string[] = [];
-  const m = {
+  const m: Record<string, string> = {
     ")": "(",
     "]": "[",
     "}": "{",
