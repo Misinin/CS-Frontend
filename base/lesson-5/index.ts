@@ -1,3 +1,5 @@
+import { Stack } from "../lesson-4/stack";
+
 interface StackObj {
   targetObj: Record<string, unknown>;
   path: string;
@@ -50,6 +52,28 @@ function stack(obj: Record<string, unknown>) {
   return res;
 }
 
+function isValid(value: string) {
+  const stack: string[] = [];
+  const m = {
+    ")": "(",
+    "]": "[",
+    "}": "{",
+  };
+
+  for (let i = 0; i < value.length; i++) {
+    if (value[i] === "(" || value[i] === "[" || value[i] === "{") {
+      stack.push(value[i]);
+    }
+    if (m[value[i]]) {
+      const last = stack.pop();
+
+      if (m[value[i]] !== last) return false;
+    }
+  }
+
+  return stack.length === 0;
+}
+
 const obj = {
   a: {
     b: [1, 2],
@@ -57,5 +81,8 @@ const obj = {
   },
 };
 
-// console.log(stack(obj));
-// console.log(recursive(obj));
+console.log(stack(obj));
+console.log(recursive(obj));
+console.log(isValid("(hello{world} and [me])")); // true
+console.log(isValid("(hello{world)} and [me])")); // false
+console.log(isValid(")")); // false
