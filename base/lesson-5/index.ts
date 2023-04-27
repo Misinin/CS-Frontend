@@ -1,3 +1,8 @@
+interface StackObj {
+  targetObj: Record<string, unknown>;
+  path: string;
+}
+
 function recursive(
   obj: Record<string, unknown>,
   path: string = "",
@@ -20,6 +25,31 @@ function recursive(
   return res;
 }
 
+function stack(obj: Record<string, unknown>) {
+  const stack: StackObj[] = [{ targetObj: obj, path: "" }];
+  const res: Record<string, unknown> = {};
+
+  while (stack.length !== 0) {
+    const currentObj = stack.pop();
+    const object = currentObj?.targetObj;
+    const currentPath = currentObj?.path;
+
+    for (let key in object) {
+      if (object.hasOwnProperty(key)) {
+        const newPath = currentPath ? `${currentPath}.${key}` : key;
+        const newObj = object[key] as Record<string, unknown>;
+
+        if (typeof newObj !== "object") {
+          res[newPath] = newObj;
+        }
+        stack.push({ targetObj: newObj, path: newPath });
+      }
+    }
+  }
+
+  return res;
+}
+
 const obj = {
   a: {
     b: [1, 2],
@@ -27,4 +57,5 @@ const obj = {
   },
 };
 
-console.log(recursive(obj));
+// console.log(stack(obj));
+// console.log(recursive(obj));
