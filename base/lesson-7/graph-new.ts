@@ -63,8 +63,6 @@ class GraphWithList {
       for (let i = 0; i < adj.length; i++) {
         const vertex = adj[i];
 
-        // console.log(vertex, this.#vertexes.get(vertex));
-
         if (!visited.has(vertex)) {
           stack.push(vertex);
           visited.add(vertex);
