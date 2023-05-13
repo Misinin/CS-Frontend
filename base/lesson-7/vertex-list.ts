@@ -1,11 +1,3 @@
-class Vertex {
-  vertex: string;
-
-  constructor(value: string) {
-    this.vertex = value;
-  }
-}
-
 export class VertexList {
   items: Array<string>;
 
