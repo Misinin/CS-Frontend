@@ -5,6 +5,13 @@ interface StackObj {
   path: string;
 }
 
+const obj = {
+  a: {
+    b: [1, 2],
+    "": { c: 2 },
+  },
+};
+
 function recursive(
   obj: Record<string, unknown>,
   path: string = "",
@@ -73,13 +80,6 @@ function isValid(value: string) {
 
   return stack.length === 0;
 }
-
-const obj = {
-  a: {
-    b: [1, 2],
-    "": { c: 2 },
-  },
-};
 
 console.log(stack(obj));
 console.log(recursive(obj));
