@@ -1,3 +1,36 @@
+class QueueItem {
+  next: unknown;
+
+  constructor(value: unknown) {
+    this.next = value;
+  }
+}
+
+class Queue {
+  head: QueueItem | null;
+  tail: QueueItem | null;
+
+  constructor() {
+    this.head = null;
+    this.tail = null;
+  }
+
+  add(value: unknown) {
+    const item = new QueueItem(value);
+
+    if (this.head === null) {
+      this.head = item;
+      this.tail = item;
+      return;
+    }
+
+    if (this.tail) {
+      this.tail.next = item;
+      this.tail = item;
+    }
+  }
+}
+
 class GraphWithList {
   #vertexes;
 
@@ -82,17 +115,19 @@ graph.addVertex("A");
 graph.addVertex("B");
 graph.addVertex("C");
 graph.addVertex("D");
-graph.addVertex("F");
-graph.addVertex("G");
-graph.addVertex("M");
+graph.addVertex("E");
 
 graph.setAdj("A", "B");
-graph.setAdj("B", "C");
 graph.setAdj("A", "C");
-graph.setAdj("C", "G");
-
 graph.setAdj("B", "D");
-graph.setAdj("C", "F");
-graph.setAdj("F", "M");
+graph.setAdj("C", "D");
+graph.setAdj("D", "E");
 
-console.log(graph.dfs());
+graph.topologicalSort();
+
+// const queue = new Queue();
+
+// queue.add(1);
+// queue.add(2);
+
+// console.log(queue.head);
